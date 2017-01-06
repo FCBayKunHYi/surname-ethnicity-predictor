@@ -34,7 +34,7 @@ class EthnicityPredictor():
 
 		return feature
 
-
+	
 	def getFeatureWithLable(self, data):
 		print(data[0])
 		print(len(data))
@@ -43,12 +43,19 @@ class EthnicityPredictor():
 
 		train_data = []
 
+		cnt = 0;
 		for (name, stat, ethList) in data:
-			if stat < 10000:
+			if stat < 100000:
 				break
+
+			cnt += 1
+			if (cnt == 20):
+				cnt = 0
+				print(cnt, stat)
+			
 			for i in range(5):
 				ethic = self.ethicity[i]
-				num = int(ethList[i] / 100)
+				num = int(ethList[i] / 1000)
 				for j in range(num):
 					train_data.append((self.getFeature(name), ethic))
 
@@ -82,13 +89,28 @@ class EthnicityPredictor():
 
 
 
-	@profile
+	
 	def TrainAndTest(self):
 		self._fileData = readFromFile("surname_ethnicity_data.csv")
 		self.ethicity = ['am.ind.', 'asian', 'black', 'hispanic', 'white']
 
 		train_set = self.getFeatureWithLable(self._fileData)
-		#self.train(train_set)
+		print("total :", len(train_set))
+
+		time2 = time.time()
+		print(time2 - time1)
+
+
+		self.train(train_set)
+
+		time3 = time.time()
+		print(time3 - time2)
+
+		file_train_result = open('data.pkl', 'wb')
+		pickle.dump(self.classifier, file_train_result, -1)
+
+		time4 = time.time()
+		print(time4 - time3)
 
 	def train(self, train_set):
 		self.classifier = nltk.NaiveBayesClassifier.train(train_set)
@@ -107,5 +129,5 @@ predictor = EthnicityPredictor()
 predictor.TrainAndTest()
 
 
-time2 = time.time()
-print(time2 - time1)
+time5 = time.time()
+print(time5 - time1)
