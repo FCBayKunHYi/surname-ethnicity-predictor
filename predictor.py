@@ -1,5 +1,6 @@
 import nltk
 import pickle
+from collections import defaultdict
 from LoadData import readFromFile
 from nltk.probability import FreqDist, DictionaryProbDist, ELEProbDist
 
@@ -16,11 +17,9 @@ class EthnicityPredictor():
 		return [name[i:i+3] for i in range(len(name) - 3)]
 
 	def buildFeatureList(self, data):
-		features = dict()
+		features = set()
 		
 		for (name, stat, ethList) in data:
-			if stat < 10000:
-				break
 			x_lets = self.get3_let(name)
 			for x_let in x_lets:
 				if x_let in features.keys():
@@ -82,7 +81,7 @@ class EthnicityPredictor():
 		self.classifier = pickle.load(pkl_file)
 
 
-	def CreatNaiveBayes(data):
+	def CreatNaiveBayes(self, data):
 		
 
 		label_freqdist = FreqDist()
@@ -93,14 +92,16 @@ class EthnicityPredictor():
 		label_probdist = ELEProbDist(label_freqdist)
 
 		feature_freqdist = defaultdict(FreqDist)
+		feature_values = defaultdict(set)
 		#for (name, total, ethList) in data:
 
 		#	x-lets
 		for (name, total, ethList) in data:
-			x_lets = get3_let(name)
+			x_lets = self.get3_let(name)
 			for i in range(5):
 				for x_let in x_lets:
 					feature_freqdist[(self._ethicity[i], x_let)][True] += ethList[i]
+					feature_values[x_let].add(True)
 		for ((label, x_lets), freqdist) in feature_freqdist.items():
 			num = 0
 			for i in range(5):
@@ -111,11 +112,14 @@ class EthnicityPredictor():
 			for (name, total, ethList) in data:
 				if x_let not in name:
 					tot += ethList[num]
-			feature_freqdist[(label, x_lets)][None] += tot;
+					feature_values[x_let].add(None)
+			if tot > 0:
+				feature_freqdist[(label, x_lets)][None] += tot;
+				
 
 		feature_probdist = {}
 		for ((label, fname), freqdist) in feature_freqdist.items():
-			probdist = ELEProbDist(freqdist, bins=len(self._featureFdist[fname]))
+			probdist = ELEProbDist(freqdist, bins=len(feature_values[fname]))
 			feature_probdist[label, fname] = probdist
 		
 		nltk.NaiveBayesClassifier = (label_probdist, feature_probdist)
