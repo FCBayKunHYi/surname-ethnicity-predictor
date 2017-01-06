@@ -14,7 +14,9 @@ class EthnicityPredictor():
 		self._ethicity = ['am.ind.', 'asian', 'black', 'hispanic', 'white']
 
 	def get3_let(self, name):
-		return [name[i:i+3] for i in range(len(name) - 3)]
+		if len(name) > 2:
+			return [name[i:i+3] for i in range(len(name) - 2)]
+		return [name]
 
 	def buildFeatureList(self, data):
 		features = set()
@@ -22,28 +24,22 @@ class EthnicityPredictor():
 		for (name, stat, ethList) in data:
 			x_lets = self.get3_let(name)
 			for x_let in x_lets:
-				if x_let in features.keys():
-					features[x_let] += stat
-				else:
-					features[x_let] = stat
+				features.add(x_let)
 
-		self._featureFdist = features #sorted(features.iteritems(), key=lambda (w,s): w, reverse=True) 	
+		self._featureList = sorted(features) #sorted(features.iteritems(), key=lambda (w,s): w, reverse=True) 	
 		#number = [0, 1, 2, 3, 4]
 		#self._mapEthic2Num = dict{zip(self._featureList, number)}
-		self._featureNumber = len(self._featureFdist)
+		self._featureNumber = len(features)
 		print(self._featureNumber)
 
 	
 	def getFeature(self, name):
 		#initVal = [False] * self._featureNumber
-		feature = self._featureFdist  #dict(zip(self._featureList, initVal))
-		for label in feature:
-			feature[label] = False
-		x_lets = self.get3_let(name)
-		for x_let in x_lets:
-			feature[x_let] = True
+		#feature = dict(zip(self._featureList, initVal))
+		x_lets = self.get3_let(name.lower())
+		trueVal = [True] * len(x_lets)
 
-		return feature
+		return dict(zip(x_lets, trueVal))
 	
 	'''
 	def getFeatureWithLable(self, data):
@@ -102,7 +98,8 @@ class EthnicityPredictor():
 				for x_let in x_lets:
 					feature_freqdist[(self._ethicity[i], x_let)][True] += ethList[i]
 					feature_values[x_let].add(True)
-		for ((label, x_lets), freqdist) in feature_freqdist.items():
+
+		for ((label, x_let), freqdist) in feature_freqdist.items():
 			num = 0
 			for i in range(5):
 				if label == self._ethicity[i]:
@@ -114,7 +111,7 @@ class EthnicityPredictor():
 					tot += ethList[num]
 					feature_values[x_let].add(None)
 			if tot > 0:
-				feature_freqdist[(label, x_lets)][None] += tot;
+				feature_freqdist[(label, x_let)][None] += tot;
 				
 
 		feature_probdist = {}
@@ -122,14 +119,14 @@ class EthnicityPredictor():
 			probdist = ELEProbDist(freqdist, bins=len(feature_values[fname]))
 			feature_probdist[label, fname] = probdist
 		
-		nltk.NaiveBayesClassifier = (label_probdist, feature_probdist)
+		self.classifier = nltk.NaiveBayesClassifier(label_probdist, feature_probdist)
 
 
 
 	
 	def TrainAndTest(self):
 		self._fileData = readFromFile("surname_ethnicity_data.csv")
-		train_set = self._fileData[:300]
+		train_set = self._fileData[10000:]
 		self.buildFeatureList(train_set)
 		self.CreatNaiveBayes(train_set)
 		time2 = time.time()
@@ -167,7 +164,7 @@ class EthnicityPredictor():
 		#score = score.items()
 		print('Probability:')
 		for ethic in self._ethicity:
-			print(ethic, ': ', score.prob(ethic))
+			print("%s : %.2f%% " % (ethic, score.prob(ethic) * 100))
 
 
 	def test(self,test_set):
@@ -177,10 +174,18 @@ class EthnicityPredictor():
 time1 = time.time()
 
 predictor = EthnicityPredictor()
-#predictor.readProbabilityFromPkl('some_train_result.pkl')
+#predictor.readProbabilityFromPkl('train_result.pkl')
 predictor.TrainAndTest()
+#print(predictor.get3_let("abcde"))
 time5 = time.time()
 print(time5 - time1)
 
-surname = input("Please input surname:\n")
-predictor.classify(surname)
+'''
+dist = predictor.classifier.prob_classify({'abc': True})
+for label in dist.samples():  
+    print("%s: %f" % (label, dist.prob(label))) 
+'''
+
+while 1 > 0:
+	surname = input("Please input surname:\n")
+	predictor.classify(surname)
