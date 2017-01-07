@@ -4,7 +4,6 @@ from collections import defaultdict
 from LoadData import readFromFile
 from nltk.probability import FreqDist, DictionaryProbDist, ELEProbDist
 
-import time
 
 
 
@@ -12,6 +11,7 @@ class EthnicityPredictor():
 	
 	def __init__(self):
 		self._ethicity = ['am.ind.', 'asian', 'black', 'hispanic', 'white']
+		self._fileData = readFromFile("surname_ethnicity_data.csv")
 
 	def get3_let(self, name):
 		if len(name) > 2:
@@ -125,7 +125,7 @@ class EthnicityPredictor():
 
 	
 	def TrainAndTest(self):
-		self._fileData = readFromFile("surname_ethnicity_data.csv")
+		
 		train_set = self._fileData[10000:]
 		self.buildFeatureList(train_set)
 		self.CreatNaiveBayes(train_set)
@@ -167,18 +167,32 @@ class EthnicityPredictor():
 			print("%s : %.2f%% " % (ethic, score.prob(ethic) * 100))
 
 
-	def test(self,test_set):
-		return nltk.classify.accuracy(self.classifier, test_set)
+	def test(self, test_set):
+		correct_cnt = 0
+
+		for (name, total, ethList) in test_set:
+			feature = self.getFeature(name)
+			result = self.classifier.classify(feature)
+			#score = self.classifier.prob_classify(feature)
+			maxi = 0
+			for i in range(5):
+				if ethList[i] > ethList[maxi]:
+					maxi = i
+			if self._ethicity[maxi] == result:
+				correct_cnt += 1
+
+		print("accuracy : %.2f %%" % (correct_cnt / len(test_set) * 100))
+		#return nltk.classify.accuracy(self.classifier, test_set)
 
 		
-time1 = time.time()
+#time1 = time.time()
 
 predictor = EthnicityPredictor()
-#predictor.readProbabilityFromPkl('train_result.pkl')
-predictor.TrainAndTest()
+predictor.readProbabilityFromPkl('train_result_10000_To.pkl')
+#predictor.TrainAndTest()
 #print(predictor.get3_let("abcde"))
-time5 = time.time()
-print(time5 - time1)
+predictor.test(predictor._fileData[:10000])
+
 
 '''
 dist = predictor.classifier.prob_classify({'abc': True})
